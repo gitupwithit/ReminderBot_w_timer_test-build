@@ -3,7 +3,7 @@ const express = require("express")
 const server = express()
 
 server.all("/", (req, res) => {
-    res.send('Reminder bot 2 is on the clock.')
+    res.send('Reminder bot 2 test build is working.')
 })
 
 function keepAlive(){
