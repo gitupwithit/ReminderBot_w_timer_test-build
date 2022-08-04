@@ -62,7 +62,6 @@ let time_for_list;
 let timerHours;
 let timerMins;
 let timerAmOrPm;
-let tmr;
 let user_id_for_list;
 
 // gets current day/time
@@ -71,7 +70,7 @@ let user_id_for_list;
 // calculates time until reminder
 
 function ConvertTo24HrTime(msg) {
-  // get current day and month (so that day can be incrimented if needed)
+  // get current day and month (so day can be incrimented if needed)
   let currentTime = luxon.DateTime.local().setZone('America/New_York').toISO() // gets current date and time
   let currentYear = currentTime.charAt(0) + currentTime.charAt(1) + currentTime.charAt(2) + currentTime.charAt(3)
   let currentMonth = currentTime.charAt(5) + currentTime.charAt(6)
@@ -133,7 +132,7 @@ function ConvertTo24HrTime(msg) {
   if (hoursTillRemind === 0) {
     msg.reply(timerHours + ":" + timerMins + timerAmOrPm + "? " + minutesTillRemind + " minutes from now. Is that right? Yes or No?")
   }
-  minutesTillReminder = diffInMinutes
+  minutesTillReminder = diffInMinutes.minutes
   conversationState = 3
 }
 
@@ -199,20 +198,60 @@ function SetUpReminder(msg, reminderTime) {
   // check how many timers are in reminders_list, increment "tmr" + number of timers
   const reminderData = fs.readFileSync('reminder_list.json');
   let reminders = JSON.parse(reminderData);
-  // numberOfReminders = Object.keys(reminders).length;
-  // console.log(numberOfReminders);
-  let id = msg.author.id
-  let toAdd = {id : reminderTime}
-  reminders.push(toAdd)
-  tmr = new Timer();
-  tmr.start({ countdown: true, startValues: { minutes: minutesTillReminder } });
-  tmr.addEventListener('secondsUpdated', function(e) { });
-  tmr.addEventListener('targetAchieved', function(e) {
-    msg.reply("Time to get goin'.");
-    conversationState = 0;
+  
+  let userid = msg.author.id
+  Object.assign(reminders, {[`${userid}`] : reminderTime});
+  json = JSON.stringify(reminders);
+  fs.writeFile('reminder_list.json', json, 'utf8', function(err){
+    if(err) throw err;
   });
+  numberOfReminders = Object.keys(reminders).length;
+  if (numberOfReminders === 0) {
+    let tmr1 = new Timer();
+    tmr1.start({ countdown: true, startValues: { minutes: minutesTillReminder } });
+    tmr1.addEventListener('secondsUpdated', function(e) {});
+    tmr1.addEventListener('targetAchieved', function(e) {
+      msg.reply("Time to get goin'.");
+      conversationState = 0;
+    });
+  }
+  if (numberOfReminders === 1) {
+    let tmr2 = new Timer();
+    tmr2.start({ countdown: true, startValues: { minutes: minutesTillReminder } });
+    tmr2.addEventListener('secondsUpdated', function(e) {});
+    tmr2.addEventListener('targetAchieved', function(e) {
+      msg.reply("Time to get goin'.");
+      conversationState = 0;
+    });
+  }
+  if (numberOfReminders === 2) {
+    let tmr3 = new Timer();
+    tmr3.start({ countdown: true, startValues: { minutes: minutesTillReminder } });
+    tmr3.addEventListener('secondsUpdated', function(e) {});
+    tmr3.addEventListener('targetAchieved', function(e) {
+      msg.reply("Time to get goin'.");
+      conversationState = 0;
+    });
+  }
 }
 
+function CancelReminder(msg) {
+  const reminderData = fs.readFileSync('reminder_list.json');
+  let reminders = JSON.parse(reminderData);
+  Object.keys(reminders).forEach(function(key) {
+    if (key == msg.author.id) {
+      console.log(reminders[key])
+      console.log("delete this one: " + reminders[key])
+      delete reminders[key];
+      json = JSON.stringify(reminders);
+      fs.writeFile('reminder_list.json', json, 'utf8', function(err){
+      if(err) throw err;
+      });
+    }
+  })
+  //tmr.removeAllEventListeners();
+  conversationState = 0
+}
 
 // handles message input:
 Barney.on('messageCreate', msg => {
@@ -290,13 +329,17 @@ Barney.on('messageCreate', msg => {
       }
       if (msg.content.toLowerCase().includes("cancel")) {
         msg.reply("Fine, I'll cancel it.");
-        tmr.removeAllEventListeners();
-        conversationState = 0
+        CancelReminder(msg)
         return;
       }
     }
   }
 });
+
+function Initialize() {
+  
+}
+  
 
 Barney.on("ready", () => {
   //console.log("conversation state = " + conversationState)
